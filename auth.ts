@@ -54,9 +54,23 @@ async function loadUser(email: string) {
   }
 }
 
+function resolveAuthSecret(): string {
+  const raw = (process.env.AUTH_SECRET ?? "").trim();
+  if (raw) return raw;
+  // Sem segredo configurado: placeholder temporário (válido só até haver
+  // dados reais). Em produção, avisa no log e é visível em /api/health.
+  if (process.env.NODE_ENV === "production") {
+    console.warn(
+      "[auth] AUTH_SECRET em falta — a usar segredo temporário. " +
+        "Defina AUTH_SECRET na Vercel (Environment Variables) e faça redeploy."
+    );
+  }
+  return "dev-placeholder-secret-mudar-antes-de-producao-1234567890";
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
-  secret: process.env.AUTH_SECRET ?? "build-placeholder-mudar-em-producao-1234567890",
+  secret: resolveAuthSecret(),
   session: { strategy: "jwt", maxAge: 8 * 60 * 60 },
   pages: { signIn: "/login" },
   providers: [

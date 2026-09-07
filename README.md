@@ -29,6 +29,22 @@ Sem `DATABASE_URL`, a app arranca com avisos e contas demo (só dev, palavra-pas
    psql $DATABASE_URL -f db/migrations/0001_init.sql -f db/migrations/0002_roles.sql
    pnpm db:seed
    ```
+   No Windows PowerShell: `psql $env:DATABASE_URL -f db/migrations/0001_init.sql` (e depois o `0002_roles.sql`).
+
+## Variáveis na Vercel (Production)
+
+Definir em Project Settings → Environment Variables e fazer redeploy.
+**Não copiar** valores `localhost` do `.env.example`:
+
+| Variável | Valor |
+|---|---|
+| `AUTH_SECRET` | gerar com `openssl rand -base64 32` (obrigatória; sem ela o login falha) |
+| `DATABASE_URL` | URL do Neon (branch prod) com `?sslmode=require` (quando pronta) |
+| `APP_ENCRYPTION_KEY` | 32 bytes base64 (quando houver notas clínicas) |
+| `BLOB_READ_WRITE_TOKEN` | token Vercel Blob (quando houver uploads em prod) |
+
+Diagnóstico seguro (só indica presença, nunca valores): abrir
+`https://<dominio>/api/health` e ver o objeto `env`.
 4. Definir `AUTH_SECRET` (gerar com `openssl rand -base64 32`) e `APP_ENCRYPTION_KEY` (32 bytes base64).
 
 ## Verificações
