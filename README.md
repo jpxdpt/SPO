@@ -16,8 +16,9 @@ cp .env.example .env.local
 pnpm dev      # http://localhost:3000 → /dashboard → /login
 ```
 
-Sem `DATABASE_URL`, a app arranca com avisos e contas demo (só dev):
-`psicologa@escola-demo.pt` / `dt@escola-demo.pt` (palavra-passe em `.env.local`).
+Sem `DATABASE_URL`, a app arranca com avisos e contas demo (só dev, palavra-passe `demo`):
+`psicologa@escola-demo.pt` (Psicólogo SPO) · `orientador@escola-demo.pt` (Orientador) ·
+`dt@escola-demo.pt` (Professor) · `admin@escola-demo.pt` (Administrador técnico, sem acesso clínico).
 
 ## Ligar o Neon (quando tiveres o URL)
 
@@ -25,7 +26,7 @@ Sem `DATABASE_URL`, a app arranca com avisos e contas demo (só dev):
 2. `DATABASE_URL="postgresql://…@ep-….eu-central-1.aws.neon.tech/spo_dev?sslmode=require"` no `.env.local` (dev) e nas env vars da Vercel (prod).
 3. Aplicar schema + RLS e seed **fictício**:
    ```bash
-   psql $DATABASE_URL -f db/migrations/0001_init.sql
+   psql $DATABASE_URL -f db/migrations/0001_init.sql -f db/migrations/0002_roles.sql
    pnpm db:seed
    ```
 4. Definir `AUTH_SECRET` (gerar com `openssl rand -base64 32`) e `APP_ENCRYPTION_KEY` (32 bytes base64).

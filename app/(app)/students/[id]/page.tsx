@@ -1,4 +1,5 @@
-import { requireUser } from "@/lib/session";
+import { requirePermission } from "@/lib/session";
+import { PERMISSIONS } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const dynamic = "force-dynamic";
@@ -6,7 +7,7 @@ export const dynamic = "force-dynamic";
 const TABS = ["Resumo", "Casos", "Agenda", "Documentos", "Histórico", "Auditoria"];
 
 export default async function StudentDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  await requireUser();
+  await requirePermission(PERMISSIONS.STUDENTS_READ);
   const { id } = await params;
 
   return (

@@ -1,6 +1,6 @@
 import { getDb, hasDatabaseUrl, withRls } from "@/lib/db";
 import type { SessionUser } from "@/lib/session";
-import { isPsychAdmin } from "@/lib/permissions";
+import { isPsychologist } from "@/lib/permissions";
 
 /** Listas com âmbito aplicado. Sem DB → devolve vazio (UI mostra aviso). */
 
@@ -31,7 +31,7 @@ export async function listReferrals(_u: SessionUser) {
 }
 
 export async function listCases(u: SessionUser) {
-  if (!hasDatabaseUrl() || !isPsychAdmin(u.roles)) return [];
+  if (!hasDatabaseUrl() || !isPsychologist(u.roles)) return [];
   return [] as {
     id: string;
     studentName: string;

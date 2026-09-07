@@ -9,25 +9,44 @@ import {
   ListTodo,
   Settings,
   LogOut,
+  Compass,
 } from "lucide-react";
 import { auth, signOut } from "@/auth";
-import { isPsychAdmin } from "@/lib/permissions";
+import { isAdministrator, isPsychologist, SYSTEM_ROLES } from "@/lib/permissions";
 
-const NAV = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: "all" },
-  { href: "/students", label: "Alunos", icon: Users, roles: "all" },
-  { href: "/referrals", label: "Sinalizações", icon: Inbox, roles: "all" },
-  { href: "/cases", label: "Casos", icon: FolderKanban, roles: "psych" },
-  { href: "/calendar", label: "Calendário", icon: CalendarDays, roles: "psych" },
-  { href: "/tasks", label: "Tarefas", icon: ListTodo, roles: "all" },
-  { href: "/settings", label: "Administração", icon: Settings, roles: "psych" },
-] as const;
+type NavItem = {
+  href: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  show: (roles: string[], wildcard: boolean) => boolean;
+};
+
+const NAV: NavItem[] = [
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, show: () => true },
+  { href: "/students", label: "Alunos", icon: Users, show: (r, w) => w || r.some((x) => x !== SYSTEM_ROLES.ADMINISTRATOR) },
+  { href: "/referrals", label: "Sinalizações", icon: Inbox, show: (r, w) => w || r.some((x) => x !== SYSTEM_ROLES.ADMINISTRATOR) },
+  { href: "/orientation", label: "Orientação", icon: Compass, show: (r, w) => w || r.includes(SYSTEM_ROLES.SPO_PSYCHOLOGIST) || r.includes(SYSTEM_ROLES.GUIDANCE_COUNSELOR) },
+  { href: "/cases", label: "Casos", icon: FolderKanban, show: (r, w) => w || r.includes(SYSTEM_ROLES.SPO_PSYCHOLOGIST) },
+  { href: "/calendar", label: "Calendário", icon: CalendarDays, show: (r, w) => w || r.includes(SYSTEM_ROLES.SPO_PSYCHOLOGIST) },
+  { href: "/tasks", label: "Tarefas", icon: ListTodo, show: (r, w) => w || r.some((x) => x !== SYSTEM_ROLES.ADMINISTRATOR) },
+  { href: "/settings", label: "Administração", icon: Settings, show: (r, w) => w || r.includes(SYSTEM_ROLES.ADMINISTRATOR) },
+];
+
+const ROLE_LABELS: Record<string, string> = {
+  [SYSTEM_ROLES.SPO_PSYCHOLOGIST]: "Psicólogo/a SPO",
+  [SYSTEM_ROLES.GUIDANCE_COUNSELOR]: "Orientador/a Educacional",
+  [SYSTEM_ROLES.TEACHER]: "Professor/Docente",
+  [SYSTEM_ROLES.ADMINISTRATOR]: "Administrador",
+};
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
   const user = (session as unknown as { user?: { id?: string; name?: string; roles?: string[] } } | null)?.user;
   if (!user?.id) redirect("/login");
-  const psych = isPsychAdmin(user.roles ?? []) || (user.roles ?? []).length === 0;
+  const roles = user.roles ?? [];
+  const wildcard = roles.length === 0;
+  const psych = isPsychologist(roles);
+  const admin = isAdministrator(roles);
 
   return (
     <div className="flex min-h-screen">
@@ -37,7 +56,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <p className="text-xs text-blue-200">Psicologia e Orientação</p>
         </div>
         <nav className="flex-1 space-y-1 px-3">
-          {NAV.filter((n) => n.roles === "all" || psych).map((n) => (
+          {NAV.filter((n) => n.show(roles, wildcard)).map((n) => (
             <Link
               key={n.href}
               href={n.href}
@@ -50,7 +69,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </nav>
         <div className="border-t border-white/10 p-4 text-xs">
           <p className="truncate font-medium">{user.name ?? "Utilizador"}</p>
-          <p className="text-blue-200">{psych ? "Equipa SPO" : "Direção de turma"}</p>
+          <p className="text-blue-200">
+            {psych ? "Equipa SPO" : admin ? "Administração" : roles.map((r) => ROLE_LABELS[r] ?? r).join(", ")}
+          </p>
           <form
             action={async () => {
               "use server";

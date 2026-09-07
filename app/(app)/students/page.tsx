@@ -1,4 +1,5 @@
-import { requireUser } from "@/lib/session";
+import { requirePermission } from "@/lib/session";
+import { PERMISSIONS } from "@/lib/permissions";
 import { hasDatabaseUrl } from "@/lib/db";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,7 +9,7 @@ import { Button } from "@/components/ui/button";
 export const dynamic = "force-dynamic";
 
 export default async function StudentsPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
-  await requireUser();
+  await requirePermission(PERMISSIONS.STUDENTS_READ);
   const { q } = await searchParams;
   void q;
 

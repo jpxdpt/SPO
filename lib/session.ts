@@ -1,6 +1,11 @@
-import { redirect } from "next/navigation";
+import { forbidden, redirect } from "next/navigation";
 import { auth } from "@/auth";
-import { hasPermission, isPsychAdmin, type PermissionCode } from "@/lib/permissions";
+import {
+  hasPermission,
+  isAdministrator,
+  isPsychologist,
+  type PermissionCode,
+} from "@/lib/permissions";
 
 export type SessionUser = {
   id: string;
@@ -29,14 +34,23 @@ export async function requirePermission(code: PermissionCode): Promise<SessionUs
   const u = await requireUser();
   if (u.permissions.includes("*")) return u;
   if (!hasPermission(u.permissions, code)) {
-    throw new Error(`403: sem permissão ${code}`);
+    forbidden();
   }
   return u;
 }
 
+/** Exclusivo da equipa clínica SPO (psicólogos). */
 export async function requirePsych(): Promise<SessionUser> {
   const u = await requireUser();
   if (u.permissions.includes("*")) return u;
-  if (!isPsychAdmin(u.roles)) throw new Error("403: exclusivo da equipa SPO");
+  if (!isPsychologist(u.roles)) forbidden();
+  return u;
+}
+
+/** Exclusivo do administrador técnico (sem acesso clínico). */
+export async function requireAdmin(): Promise<SessionUser> {
+  const u = await requireUser();
+  if (u.permissions.includes("*")) return u;
+  if (!isAdministrator(u.roles)) forbidden();
   return u;
 }

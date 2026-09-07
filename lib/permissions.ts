@@ -22,6 +22,9 @@ export const PERMISSIONS = {
   ROLES_MANAGE: "roles.manage",
   AUDIT_READ: "audit.read",
   SETTINGS_MANAGE: "settings.manage",
+  ORIENTATION_READ: "orientation.read",
+  ORIENTATION_WRITE: "orientation.write",
+  REPORTS_READ: "reports.read",
 } as const;
 
 export type PermissionCode = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -46,21 +49,65 @@ export const ALL_PERMISSIONS: { code: PermissionCode; description: string }[] = 
   { code: PERMISSIONS.ROLES_MANAGE, description: "Gerir papéis e permissões" },
   { code: PERMISSIONS.AUDIT_READ, description: "Consultar auditoria" },
   { code: PERMISSIONS.SETTINGS_MANAGE, description: "Gerir definições SPO" },
+  { code: PERMISSIONS.ORIENTATION_READ, description: "Consultar processos de orientação" },
+  { code: PERMISSIONS.ORIENTATION_WRITE, description: "Gerir processos de orientação" },
+  { code: PERMISSIONS.REPORTS_READ, description: "Consultar relatórios e métricas" },
 ];
 
 export const SYSTEM_ROLES = {
-  PSYCHOLOGIST_ADMIN: "PSYCHOLOGIST_ADMIN",
-  CLASS_DIRECTOR: "CLASS_DIRECTOR",
+  /** Psicólogo/a SPO — utilizador principal, todo o trabalho clínico e operacional. */
+  SPO_PSYCHOLOGIST: "SPO_PSYCHOLOGIST",
+  /** Orientador/a Educacional — orientação escolar e profissional, sem acesso clínico. */
+  GUIDANCE_COUNSELOR: "GUIDANCE_COUNSELOR",
+  /** Professor/Docente — sinaliza alunos das suas turmas, estados seguros. */
+  TEACHER: "TEACHER",
+  /** Administrador — gestão técnica; SEM acesso a conteúdo psicológico confidencial. */
+  ADMINISTRATOR: "ADMINISTRATOR",
 } as const;
 
 /** Mapa de permissões pré-carregado (seed). Papel personalizado = conjunto vazio. */
 export const SEED_ROLE_PERMISSIONS: Record<string, PermissionCode[]> = {
-  [SYSTEM_ROLES.PSYCHOLOGIST_ADMIN]: Object.values(PERMISSIONS),
-  [SYSTEM_ROLES.CLASS_DIRECTOR]: [
+  [SYSTEM_ROLES.SPO_PSYCHOLOGIST]: [
+    PERMISSIONS.STUDENTS_READ,
+    PERMISSIONS.STUDENTS_WRITE,
+    PERMISSIONS.REFERRALS_CREATE,
+    PERMISSIONS.REFERRALS_READ_OWN,
+    PERMISSIONS.REFERRALS_READ_ALL,
+    PERMISSIONS.REFERRALS_TRIAGE,
+    PERMISSIONS.CASES_READ,
+    PERMISSIONS.CASES_WRITE,
+    PERMISSIONS.CASES_ASSIGN,
+    PERMISSIONS.APPOINTMENTS_READ,
+    PERMISSIONS.APPOINTMENTS_WRITE,
+    PERMISSIONS.TASKS_READ,
+    PERMISSIONS.TASKS_WRITE,
+    PERMISSIONS.DOCUMENTS_READ,
+    PERMISSIONS.DOCUMENTS_WRITE,
+    PERMISSIONS.ORIENTATION_READ,
+    PERMISSIONS.ORIENTATION_WRITE,
+    PERMISSIONS.REPORTS_READ,
+    PERMISSIONS.AUDIT_READ,
+  ],
+  [SYSTEM_ROLES.GUIDANCE_COUNSELOR]: [
+    PERMISSIONS.STUDENTS_READ,
+    PERMISSIONS.REFERRALS_CREATE,
+    PERMISSIONS.REFERRALS_READ_OWN,
+    PERMISSIONS.ORIENTATION_READ,
+    PERMISSIONS.ORIENTATION_WRITE,
+    PERMISSIONS.TASKS_READ,
+    PERMISSIONS.TASKS_WRITE,
+  ],
+  [SYSTEM_ROLES.TEACHER]: [
     PERMISSIONS.STUDENTS_READ,
     PERMISSIONS.REFERRALS_CREATE,
     PERMISSIONS.REFERRALS_READ_OWN,
     PERMISSIONS.TASKS_READ,
+  ],
+  [SYSTEM_ROLES.ADMINISTRATOR]: [
+    PERMISSIONS.USERS_MANAGE,
+    PERMISSIONS.ROLES_MANAGE,
+    PERMISSIONS.AUDIT_READ,
+    PERMISSIONS.SETTINGS_MANAGE,
   ],
 };
 
@@ -68,8 +115,26 @@ export function hasPermission(userPermissions: string[], code: PermissionCode): 
   return userPermissions.includes(code);
 }
 
-export function isPsychAdmin(roleCodes: string[]): boolean {
-  return roleCodes.includes(SYSTEM_ROLES.PSYCHOLOGIST_ADMIN);
+export function hasRole(roleCodes: string[], code: string): boolean {
+  return roleCodes.includes(code);
+}
+
+/** Equipa clínica SPO (psicólogos): único perfil com acesso a casos/notas. */
+export function isPsychologist(roleCodes: string[]): boolean {
+  return roleCodes.includes(SYSTEM_ROLES.SPO_PSYCHOLOGIST);
+}
+
+/** Administrador técnico: gere a plataforma, sem acesso clínico. */
+export function isAdministrator(roleCodes: string[]): boolean {
+  return roleCodes.includes(SYSTEM_ROLES.ADMINISTRATOR);
+}
+
+/** Perfis que submetem sinalizações e veem estados seguros. */
+export function isReferrer(roleCodes: string[]): boolean {
+  return (
+    roleCodes.includes(SYSTEM_ROLES.TEACHER) ||
+    roleCodes.includes(SYSTEM_ROLES.GUIDANCE_COUNSELOR)
+  );
 }
 
 /**

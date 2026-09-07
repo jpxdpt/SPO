@@ -66,28 +66,44 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       async authorize(credentials) {
         const parsed = loginSchema.safeParse(credentials);
         if (!parsed.success) return null;
-        // Dev sem BD: contas demo (nunca em prod com DATABASE_URL).
+        // Dev sem BD: contas demo dos 4 perfis (nunca em prod com DATABASE_URL).
         if (!process.env.DATABASE_URL) {
           const { email, password } = parsed.data;
+          const demo = (
+            id: string,
+            name: string,
+            roles: string[],
+            permissions: string[]
+          ) => ({ id, name, email, schoolId: "demo-school", roles, permissions }) as never;
           if (email === (process.env.DEV_PSYCH_EMAIL ?? "psicologa@escola-demo.pt") && password === (process.env.DEV_PSYCH_PASSWORD ?? "demo")) {
-            return {
-              id: "demo-psych-1",
-              name: "Dra. Demo (fictícia)",
-              email,
-              schoolId: "demo-school",
-              roles: ["PSYCHOLOGIST_ADMIN"],
-              permissions: ["*"],
-            } as never;
+            return demo("demo-psych-1", "Dra. Demo (fictícia)", ["SPO_PSYCHOLOGIST"], ["*"]);
+          }
+          if (email === (process.env.DEV_COUNSELOR_EMAIL ?? "orientador@escola-demo.pt") && password === (process.env.DEV_COUNSELOR_PASSWORD ?? "demo")) {
+            return demo("demo-coun-1", "Orientador Demo (fictício)", ["GUIDANCE_COUNSELOR"], [
+              "students.read",
+              "referrals.create",
+              "referrals.read.own",
+              "orientation.read",
+              "orientation.write",
+              "tasks.read",
+              "tasks.write",
+            ]);
           }
           if (email === (process.env.DEV_DIRECTOR_EMAIL ?? "dt@escola-demo.pt") && password === (process.env.DEV_DIRECTOR_PASSWORD ?? "demo")) {
-            return {
-              id: "demo-dir-1",
-              name: "Prof. Demo (fictício)",
-              email,
-              schoolId: "demo-school",
-              roles: ["CLASS_DIRECTOR"],
-              permissions: ["students.read", "referrals.create", "referrals.read.own", "tasks.read"],
-            } as never;
+            return demo("demo-teach-1", "Prof. Demo (fictício)", ["TEACHER"], [
+              "students.read",
+              "referrals.create",
+              "referrals.read.own",
+              "tasks.read",
+            ]);
+          }
+          if (email === (process.env.DEV_ADMIN_EMAIL ?? "admin@escola-demo.pt") && password === (process.env.DEV_ADMIN_PASSWORD ?? "demo")) {
+            return demo("demo-admin-1", "Admin Demo (fictício)", ["ADMINISTRATOR"], [
+              "users.manage",
+              "roles.manage",
+              "audit.read",
+              "settings.manage",
+            ]);
           }
           return null;
         }

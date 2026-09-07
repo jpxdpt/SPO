@@ -1,5 +1,5 @@
 import { requirePermission } from "@/lib/session";
-import { PERMISSIONS, isPsychAdmin } from "@/lib/permissions";
+import { PERMISSIONS, isPsychologist } from "@/lib/permissions";
 import { hasDatabaseUrl } from "@/lib/db";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -23,7 +23,7 @@ const CATEGORIES = [
 
 export default async function ReferralsPage() {
   const u = await requirePermission(PERMISSIONS.REFERRALS_CREATE);
-  const psych = isPsychAdmin(u.roles) || u.permissions.includes("*");
+  const psych = isPsychologist(u.roles) || u.permissions.includes("*");
 
   return (
     <div className="space-y-6">

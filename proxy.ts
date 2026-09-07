@@ -17,5 +17,5 @@ export default async function middleware(req: { nextUrl: { pathname: string } })
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/students/:path*", "/referrals/:path*", "/cases/:path*", "/calendar/:path*", "/tasks/:path*", "/settings/:path*"],
+  matcher: ["/dashboard/:path*", "/students/:path*", "/referrals/:path*", "/orientation/:path*", "/cases/:path*", "/calendar/:path*", "/tasks/:path*", "/settings/:path*"],
 };

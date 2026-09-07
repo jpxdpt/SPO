@@ -46,37 +46,76 @@ async function main() {
     { code: "roles.manage", description: "Gerir papéis e permissões" },
     { code: "audit.read", description: "Consultar auditoria" },
     { code: "settings.manage", description: "Gerir definições SPO" },
+    { code: "orientation.read", description: "Consultar processos de orientação" },
+    { code: "orientation.write", description: "Gerir processos de orientação" },
+    { code: "reports.read", description: "Consultar relatórios e métricas" },
   ]) {
     await sql`INSERT INTO permissions (code, description) VALUES (${p.code}, ${p.description}) ON CONFLICT (code) DO NOTHING`;
   }
 
-  const psychRole = crypto.randomUUID();
-  const dirRole = crypto.randomUUID();
-  await sql`INSERT INTO roles (id, school_id, code, name, is_system_role) VALUES (${psychRole}, ${schoolId}, 'PSYCHOLOGIST_ADMIN', 'Psicóloga administradora', TRUE)`;
-  await sql`INSERT INTO roles (id, school_id, code, name, is_system_role) VALUES (${dirRole}, ${schoolId}, 'CLASS_DIRECTOR', 'Diretor de turma', TRUE)`;
-
-  const psychPerms = await sql`SELECT id FROM permissions`;
-  for (const r of psychPerms) {
-    await sql`INSERT INTO role_permissions (role_id, permission_id) VALUES (${psychRole}, ${r.id}) ON CONFLICT DO NOTHING`;
-  }
-  for (const code of ["students.read", "referrals.create", "referrals.read.own", "tasks.read"]) {
-    const row = await sql`SELECT id FROM permissions WHERE code = ${code}`;
-    if (row[0]) await sql`INSERT INTO role_permissions (role_id, permission_id) VALUES (${dirRole}, ${row[0].id}) ON CONFLICT DO NOTHING`;
+  // 4 papéis de sistema (o Administrador NÃO recebe permissões clínicas).
+  const roleDefs: { code: string; name: string; perms: string[] }[] = [
+    {
+      code: "SPO_PSYCHOLOGIST",
+      name: "Psicólogo/a SPO",
+      perms: [
+        "students.read", "students.write", "referrals.create", "referrals.read.own",
+        "referrals.read.all", "referrals.triage", "cases.read", "cases.write", "cases.assign",
+        "appointments.read", "appointments.write", "tasks.read", "tasks.write",
+        "documents.read", "documents.write", "orientation.read", "orientation.write",
+        "reports.read", "audit.read",
+      ],
+    },
+    {
+      code: "GUIDANCE_COUNSELOR",
+      name: "Orientador/a Educacional",
+      perms: [
+        "students.read", "referrals.create", "referrals.read.own",
+        "orientation.read", "orientation.write", "tasks.read", "tasks.write",
+      ],
+    },
+    {
+      code: "TEACHER",
+      name: "Professor/Docente",
+      perms: ["students.read", "referrals.create", "referrals.read.own", "tasks.read"],
+    },
+    {
+      code: "ADMINISTRATOR",
+      name: "Administrador",
+      perms: ["users.manage", "roles.manage", "audit.read", "settings.manage"],
+    },
+  ];
+  const roleIds: Record<string, string> = {};
+  for (const r of roleDefs) {
+    const id = crypto.randomUUID();
+    roleIds[r.code] = id;
+    await sql`INSERT INTO roles (id, school_id, code, name, is_system_role) VALUES (${id}, ${schoolId}, ${r.code}, ${r.name}, TRUE)`;
+    for (const code of r.perms) {
+      const row = await sql`SELECT id FROM permissions WHERE code = ${code}`;
+      if (row[0]) await sql`INSERT INTO role_permissions (role_id, permission_id) VALUES (${id}, ${row[0].id}) ON CONFLICT DO NOTHING`;
+    }
   }
 
   const hash = await bcrypt.hash("mudar-em-dev-123", 10);
   const psychId = crypto.randomUUID();
-  const psych2Id = crypto.randomUUID();
-  const dirAId = crypto.randomUUID();
-  const dirBId = crypto.randomUUID();
+  const counId = crypto.randomUUID();
+  const teachAId = crypto.randomUUID();
+  const teachBId = crypto.randomUUID();
+  const adminId = crypto.randomUUID();
   await sql`INSERT INTO profiles (id, school_id, name, email, password_hash) VALUES
     (${psychId}, ${schoolId}, 'Dra. Helena fictitious', 'psicologa@escola-demo.pt', ${hash}),
-    (${psych2Id}, ${schoolId}, 'Dra. Marta fictitious', 'psicologa2@escola-demo.pt', ${hash}),
-    (${dirAId}, ${schoolId}, 'Prof. Rui fictitious', 'dt@escola-demo.pt', ${hash}),
-    (${dirBId}, ${schoolId}, 'Profª. Carla fictitious', 'dt2@escola-demo.pt', ${hash})`;
-  await sql`INSERT INTO user_roles (profile_id, role_id) VALUES (${psychId}, ${psychRole}), (${psych2Id}, ${psychRole}), (${dirAId}, ${dirRole}), (${dirBId}, ${dirRole})`;
+    (${counId}, ${schoolId}, 'Dr. Nuno fictitious', 'orientador@escola-demo.pt', ${hash}),
+    (${teachAId}, ${schoolId}, 'Prof. Rui fictitious', 'dt@escola-demo.pt', ${hash}),
+    (${teachBId}, ${schoolId}, 'Profª. Carla fictitious', 'dt2@escola-demo.pt', ${hash}),
+    (${adminId}, ${schoolId}, 'Admin fictitious', 'admin@escola-demo.pt', ${hash})`;
+  await sql`INSERT INTO user_roles (profile_id, role_id) VALUES
+    (${psychId}, ${roleIds["SPO_PSYCHOLOGIST"]}),
+    (${counId}, ${roleIds["GUIDANCE_COUNSELOR"]}),
+    (${teachAId}, ${roleIds["TEACHER"]}),
+    (${teachBId}, ${roleIds["TEACHER"]}),
+    (${adminId}, ${roleIds["ADMINISTRATOR"]})`;
   await sql`INSERT INTO class_director_assignments (school_id, profile_id, class_name, school_year_id) VALUES
-    (${schoolId}, ${dirAId}, '7.ºA', ${yearId}), (${schoolId}, ${dirBId}, '8.ºB', ${yearId})`;
+    (${schoolId}, ${teachAId}, '7.ºA', ${yearId}), (${schoolId}, ${teachBId}, '8.ºB', ${yearId})`;
 
   const classes = ["7.ºA", "7.ºA", "7.ºA", "7.ºA", "7.ºA", "7.ºA", "7.ºA", "7.ºA", "7.ºA", "7.ºA", "8.ºB", "8.ºB", "8.ºB", "8.ºB", "8.ºB", "8.ºB", "8.ºB", "8.ºB", "8.ºB", "8.ºB"];
   const studentIds: string[] = [];
@@ -94,7 +133,7 @@ async function main() {
   const statuses = ["RECEBIDA", "EM_ANALISE", "SPO_ACOMPANHAMENTO", "ENCERRADA", "RECEBIDA"];
   for (let i = 0; i < 5; i++) {
     await sql`INSERT INTO referrals (school_id, student_id, submitted_by, category, factual_description, urgency, status)
-      VALUES (${schoolId}, ${studentIds[i]}, ${dirAId}, ${cats[i]}, ${"Descrição factual fictícia para demonstração. Sem conteúdo clínico real. ".repeat(2)}, 'normal', ${statuses[i]})`;
+      VALUES (${schoolId}, ${studentIds[i]}, ${teachAId}, ${cats[i]}, ${"Descrição factual fictícia para demonstração. Sem conteúdo clínico real. ".repeat(2)}, 'normal', ${statuses[i]})`;
   }
 
   console.log("Seed concluído (dados fictícios). Escola:", schoolId);

@@ -1,4 +1,5 @@
-import { requireUser } from "@/lib/session";
+import { requirePermission } from "@/lib/session";
+import { PERMISSIONS } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -7,7 +8,7 @@ import { Button } from "@/components/ui/button";
 export const dynamic = "force-dynamic";
 
 export default async function TasksPage() {
-  await requireUser();
+  await requirePermission(PERMISSIONS.TASKS_READ);
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Tarefas</h1>

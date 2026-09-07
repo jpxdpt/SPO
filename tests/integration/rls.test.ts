@@ -1,7 +1,8 @@
 /**
- * Teste de RLS.
- * Com DATABASE_URL: liga ao Neon (branch dev) e prova que o diretor não lê casos.
- * Sem DATABASE_URL: verifica estaticamente que a migração contém as policies críticas.
+ * Teste de RLS (migrações 0001 + 0002).
+ * Com DATABASE_URL: liga ao Neon (branch dev) e prova que docente/orientador/
+ * administrador não leem casos nem notas.
+ * Sem DATABASE_URL: verifica estaticamente que as migrações contêm as policies críticas.
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -9,30 +10,44 @@ import { join } from "node:path";
 
 const hasDb = Boolean(process.env.DATABASE_URL);
 
+function migration(n: string): string {
+  return readFileSync(join(process.cwd(), `db/migrations/${n}`), "utf8");
+}
+
 describe("RLS", () => {
-  it("migração contém policies fail-closed para tabelas clínicas", () => {
-    const sql = readFileSync(join(process.cwd(), "db/migrations/0001_init.sql"), "utf8");
-    for (const t of ["cases", "case_events", "clinical_notes", "documents", "appointments"]) {
-      expect(sql).toContain(`CREATE POLICY p_${t === "case_events" ? "case_events" : t}`);
-    }
-    expect(sql).toContain("app_has_role('PSYCHOLOGIST_ADMIN')");
+  it("migração 0001 contém base fail-closed", () => {
+    const sql = migration("0001_init.sql");
     expect(sql).toContain("ENABLE ROW LEVEL SECURITY");
+    expect(sql).toContain("app.profile_id");
   });
 
-  it.runIf(hasDb)("diretor não lê casos nem notas (live)", async () => {
+  it("migração 0002 restringe clínico ao psicólogo e isola o administrador", () => {
+    const sql = migration("0002_roles.sql");
+    for (const t of ["p_cases", "p_case_events", "p_clinical_notes", "p_documents", "p_appointments"]) {
+      expect(sql).toContain(`CREATE POLICY ${t}`);
+    }
+    expect(sql).toContain("app_is_psych()");
+    // Orientador vê base de alunos; clínico continua só psicólogo
+    expect(sql).toContain("GUIDANCE_COUNSELOR");
+    expect(sql).toContain("ADMINISTRATOR");
+  });
+
+  it.runIf(hasDb)("perfis não clínicos não leem casos nem notas (live)", async () => {
     const postgres = (await import("postgres")).default;
     const sql = postgres(process.env.DATABASE_URL as string, { ssl: "require", prepare: false });
     try {
-      const dirs = await sql`SELECT id, school_id FROM profiles
-        WHERE id IN (SELECT profile_id FROM user_roles ur JOIN roles r ON r.id = ur.role_id WHERE r.code = 'CLASS_DIRECTOR')
-        LIMIT 1`;
-      if (!dirs[0]) return; // seed ainda não aplicado
-      await sql.unsafe(`SET LOCAL app.profile_id = '${dirs[0].id}'`);
-      await sql.unsafe(`SET LOCAL app.school_id = '${dirs[0].school_id}'`);
-      const cases = await sql`SELECT id FROM cases LIMIT 1`;
-      expect(cases.length).toBe(0);
-      const notes = await sql`SELECT id FROM clinical_notes LIMIT 1`;
-      expect(notes.length).toBe(0);
+      for (const code of ["TEACHER", "GUIDANCE_COUNSELOR", "ADMINISTRATOR"]) {
+        const rows = await sql`SELECT p.id, p.school_id FROM profiles p
+          WHERE p.id IN (SELECT ur.profile_id FROM user_roles ur JOIN roles r ON r.id = ur.role_id WHERE r.code = ${code})
+          LIMIT 1`;
+        if (!rows[0]) continue; // seed ainda não aplicado
+        await sql.unsafe(`SET LOCAL app.profile_id = '${(rows[0] as { id: string }).id}'`);
+        await sql.unsafe(`SET LOCAL app.school_id = '${(rows[0] as { school_id: string }).school_id}'`);
+        const cases = await sql`SELECT id FROM cases LIMIT 1`;
+        expect(cases.length).toBe(0);
+        const notes = await sql`SELECT id FROM clinical_notes LIMIT 1`;
+        expect(notes.length).toBe(0);
+      }
     } finally {
       await sql.end();
     }

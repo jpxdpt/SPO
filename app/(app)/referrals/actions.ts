@@ -31,7 +31,7 @@ export async function createReferral(formData: FormData) {
     WHERE s.id = ${parsed.data.studentId} AND s.school_id = ${u.schoolId}
       AND (a.ends_on IS NULL OR a.ends_on >= CURRENT_DATE)
     LIMIT 1`;
-  const psych = u.permissions.includes("*") || u.roles.includes("PSYCHOLOGIST_ADMIN");
+  const psych = u.permissions.includes("*") || u.roles.includes("SPO_PSYCHOLOGIST");
   if (!psych && allowed.length === 0) {
     return { ok: false as const, errors: { studentId: ["Só pode sinalizar alunos das suas turmas."] } };
   }

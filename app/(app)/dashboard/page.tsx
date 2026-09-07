@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
-import { isPsychAdmin } from "@/lib/permissions";
+import { isAdministrator, isPsychologist } from "@/lib/permissions";
 import { hasDatabaseUrl } from "@/lib/db";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,11 +14,45 @@ export default async function DashboardPage() {
   const session = await auth();
   const user = (session as unknown as { user?: { id?: string; roles?: string[]; permissions?: string[] } } | null)?.user;
   if (!user?.id) redirect("/login");
-  const psych = isPsychAdmin(user.roles ?? []) || (user.permissions ?? []).includes("*");
+  const roles = user.roles ?? [];
+  const wildcard = (user.permissions ?? []).includes("*");
+  const psych = isPsychologist(roles) || wildcard;
+  const admin = isAdministrator(roles);
   const noDb = !hasDatabaseUrl();
 
+  if (admin && !psych) {
+    // Dashboard do administrador técnico: gestão, sem conteúdo clínico.
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Administração</h1>
+            <p className="text-sm text-slate-500">Gestão técnica da plataforma. Sem acesso a conteúdo psicológico.</p>
+          </div>
+          <Button asChild><Link href="/settings">Gerir plataforma</Link></Button>
+        </div>
+        {noDb && <DemoBanner />}
+        <section className="grid grid-cols-2 gap-4 lg:grid-cols-4" aria-label="Indicadores técnicos">
+          {[
+            { label: "Utilizadores ativos", value: "—" },
+            { label: "Papéis configurados", value: "4" },
+            { label: "Turmas / anos letivos", value: "—" },
+            { label: "Eventos de auditoria (7d)", value: "—" },
+          ].map((k) => (
+            <Card key={k.label}>
+              <CardContent>
+                <p className="text-3xl font-bold">{k.value}</p>
+                <p className="text-sm text-slate-500">{k.label}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </section>
+      </div>
+    );
+  }
+
   if (!psych) {
-    // Dashboard do diretor de turma: só as suas sinalizações + nova sinalização.
+    // Professor/Docente e Orientador: só as suas sinalizações + nova sinalização.
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
