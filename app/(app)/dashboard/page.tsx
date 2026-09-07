@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { isAdministrator, isPsychologist } from "@/lib/permissions";
 import { hasDatabaseUrl } from "@/lib/db";
+import { dashboardMetrics } from "@/lib/data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,13 +13,14 @@ export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const session = await auth();
-  const user = (session as unknown as { user?: { id?: string; roles?: string[]; permissions?: string[] } } | null)?.user;
+  const user = (session as unknown as { user?: { id?: string; schoolId?: string; name?: string; email?: string; roles?: string[]; permissions?: string[] } } | null)?.user;
   if (!user?.id) redirect("/login");
   const roles = user.roles ?? [];
   const wildcard = (user.permissions ?? []).includes("*");
   const psych = isPsychologist(roles) || wildcard;
   const admin = isAdministrator(roles);
   const noDb = !hasDatabaseUrl();
+  const metrics = await dashboardMetrics({ id: user.id, schoolId: user.schoolId ?? "", name: user.name, email: user.email, roles, permissions: user.permissions ?? [] });
 
   if (admin && !psych) {
     // Dashboard do administrador técnico: gestão, sem conteúdo clínico.
@@ -113,11 +115,11 @@ export default async function DashboardPage() {
       </div>
       {noDb && <DemoBanner />}
       <section className="grid grid-cols-2 gap-4 lg:grid-cols-4" aria-label="Indicadores">
-        {[
-          { label: "Casos ativos", value: "—" },
-          { label: "Sinalizações (mês)", value: "—" },
-          { label: "Atendimentos concluídos", value: "—" },
-          { label: "Tarefas vencidas", value: "—" },
+          {[
+          { label: "Casos ativos", value: String(metrics.activeCases) },
+          { label: "Sinalizações (mês)", value: String(metrics.monthlyReferrals) },
+          { label: "Atendimentos concluídos", value: String(metrics.completedAppointments) },
+          { label: "Tarefas vencidas", value: String(metrics.overdueTasks) },
         ].map((k) => (
           <Card key={k.label}>
             <CardContent>

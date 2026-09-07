@@ -1,6 +1,7 @@
 import { requirePermission } from "@/lib/session";
 import { PERMISSIONS, isPsychologist } from "@/lib/permissions";
 import { hasDatabaseUrl } from "@/lib/db";
+import { listReferrals, listStudents } from "@/lib/data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input, Textarea } from "@/components/ui/input";
@@ -24,6 +25,7 @@ const CATEGORIES = [
 export default async function ReferralsPage() {
   const u = await requirePermission(PERMISSIONS.REFERRALS_CREATE);
   const psych = isPsychologist(u.roles) || u.permissions.includes("*");
+  const [referrals, students] = await Promise.all([listReferrals(u), listStudents(u)]);
 
   return (
     <div className="space-y-6">
@@ -47,7 +49,10 @@ export default async function ReferralsPage() {
             >
               <div>
                 <Label htmlFor="studentId">Aluno (apenas da sua turma)</Label>
-                <Input id="studentId" name="studentId" placeholder="ID do aluno — seletor ligado ao Neon" required />
+                <select id="studentId" name="studentId" required className="h-10 w-full rounded-[12px] border border-slate-300 bg-white px-3 text-sm">
+                  <option value="">Selecionar aluno…</option>
+                  {students.map((student) => <option key={student.id} value={student.id}>{student.fullName} — {student.className}</option>)}
+                </select>
               </div>
               <div>
                 <Label htmlFor="category">Categoria</Label>
@@ -86,13 +91,30 @@ export default async function ReferralsPage() {
             {psych ? <Badge tone="info">equipa SPO</Badge> : <Badge>estados seguros</Badge>}
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-slate-500">
-              {hasDatabaseUrl()
-                ? psych
-                  ? "Lista de sinalizações recebidas com ações de triagem (aceitar, pedir informação, encaminhar, encerrar)."
-                  : "Data, aluno, categoria e estado seguro. Sem psicóloga responsável, decisão clínica ou notas internas."
-                : "Ligue o Neon para ver a lista."}
-            </p>
+            {!hasDatabaseUrl() ? <p className="text-sm text-slate-500">Ligue o Neon para ver a lista.</p> : referrals.length === 0 ? <p className="text-sm text-slate-500">Ainda não existem sinalizações.</p> : (
+              <div className="space-y-3">
+                {referrals.map((referral) => (
+                  <div key={referral.id} className="rounded-lg border border-slate-200 p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div><p className="font-medium">{referral.studentName}</p><p className="text-xs text-slate-500">{referral.category} · {referral.urgency}</p></div>
+                      <Badge tone={referral.status === "SPO_ACOMPANHAMENTO" ? "success" : referral.status === "ENCERRADA" ? "default" : "warning"}>{referral.status}</Badge>
+                    </div>
+                    {psych ? (
+                      <details className="mt-3 text-sm"><summary className="cursor-pointer font-medium text-blue-800">Abrir triagem</summary>
+                        <form action={async (formData) => { "use server"; const { triageReferral } = await import("./actions"); await triageReferral(formData); }} className="mt-3 space-y-2">
+                          <input type="hidden" name="referralId" value={referral.id} />
+                          <select name="decision" className="h-9 w-full rounded-lg border px-2" defaultValue="accept"><option value="accept">Aceitar e criar caso</option><option value="request_info">Pedir informação</option><option value="forward">Encaminhar</option><option value="close">Não prosseguir / encerrar</option></select>
+                          <input name="priority" className="h-9 w-full rounded-lg border px-2" placeholder="Prioridade: baixa, normal ou alta" defaultValue="normal" />
+                          <textarea name="note" className="min-h-20 w-full rounded-lg border p-2" placeholder="Nota factual de triagem (equipa SPO)" />
+                          <input name="safeResponseToReferrer" className="h-9 w-full rounded-lg border px-2" placeholder="Resposta factual opcional ao remetente" />
+                          <Button type="submit" size="sm">Guardar triagem</Button>
+                        </form>
+                      </details>
+                    ) : <p className="mt-2 text-xs text-slate-500">A equipa SPO gere esta sinalização. Não são apresentados detalhes clínicos.</p>}
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

@@ -26,7 +26,7 @@ Sem `DATABASE_URL`, a app arranca com avisos e contas demo (só dev, palavra-pas
 2. `DATABASE_URL="postgresql://…@ep-….eu-central-1.aws.neon.tech/spo_dev?sslmode=require"` no `.env.local` (dev) e nas env vars da Vercel (prod).
 3. Aplicar schema + RLS e seed **fictício**:
    ```bash
-   psql $DATABASE_URL -f db/migrations/0001_init.sql -f db/migrations/0002_roles.sql
+   psql $DATABASE_URL -f db/migrations/0001_init.sql -f db/migrations/0002_roles.sql -f db/migrations/0003_notification_insert_policy.sql
    pnpm db:seed
    ```
    No Windows PowerShell: `psql $env:DATABASE_URL -f db/migrations/0001_init.sql` (e depois o `0002_roles.sql`).
