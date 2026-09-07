@@ -29,7 +29,7 @@ const NAV: NavItem[] = [
   { href: "/cases", label: "Casos", icon: FolderKanban, show: (r, w) => w || r.includes(SYSTEM_ROLES.SPO_PSYCHOLOGIST) },
   { href: "/calendar", label: "Calendário", icon: CalendarDays, show: (r, w) => w || r.includes(SYSTEM_ROLES.SPO_PSYCHOLOGIST) },
   { href: "/tasks", label: "Tarefas", icon: ListTodo, show: (r, w) => w || r.some((x) => x !== SYSTEM_ROLES.ADMINISTRATOR) },
-  { href: "/settings", label: "Administração", icon: Settings, show: (r, w) => w || r.includes(SYSTEM_ROLES.ADMINISTRATOR) },
+  { href: "/settings", label: "Administração", icon: Settings, show: (r, w) => w || r.includes(SYSTEM_ROLES.ADMINISTRATOR) || r.includes(SYSTEM_ROLES.SPO_PSYCHOLOGIST) },
 ];
 
 const ROLE_LABELS: Record<string, string> = {

@@ -26,7 +26,7 @@ Sem `DATABASE_URL`, a app arranca com avisos e contas demo (só dev, palavra-pas
 2. `DATABASE_URL="postgresql://…@ep-….eu-central-1.aws.neon.tech/spo_dev?sslmode=require"` no `.env.local` (dev) e nas env vars da Vercel (prod).
 3. Aplicar schema + RLS e seed **fictício**:
    ```bash
-   psql $DATABASE_URL -f db/migrations/0001_init.sql -f db/migrations/0002_roles.sql -f db/migrations/0003_notification_insert_policy.sql
+   psql $DATABASE_URL -f db/migrations/0001_init.sql -f db/migrations/0002_roles.sql -f db/migrations/0003_notification_insert_policy.sql -f db/migrations/0004_user_management_policy.sql
    pnpm db:seed
    ```
    No Windows PowerShell: `psql $env:DATABASE_URL -f db/migrations/0001_init.sql` (e depois o `0002_roles.sql`).
@@ -45,6 +45,10 @@ Definir em Project Settings → Environment Variables e fazer redeploy.
 
 Diagnóstico seguro (só indica presença, nunca valores): abrir
 `https://<dominio>/api/health` e ver o objeto `env`.
+
+## Bootstrap de utilizadores
+
+Defina `INITIAL_PSYCHOLOGIST_PASSWORD` na Vercel Production para a password inicial da conta `INITIAL_PSYCHOLOGIST_EMAIL`. A psicóloga SPO pode depois criar os restantes perfis em `/settings`; as passwords são sempre cifradas com bcrypt antes de serem guardadas. Remova a variável de bootstrap depois de confirmar o acesso e use a gestão normal de utilizadores.
 4. Definir `AUTH_SECRET` (gerar com `openssl rand -base64 32`) e `APP_ENCRYPTION_KEY` (32 bytes base64).
 
 ## Verificações

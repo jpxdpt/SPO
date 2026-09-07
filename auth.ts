@@ -62,6 +62,10 @@ async function loadUser(email: string) {
   }
 }
 
+function isInitialPsychologist(email: string): boolean {
+  return email.toLowerCase() === envStr("INITIAL_PSYCHOLOGIST_EMAIL", "psicologa@escola-demo.pt").toLowerCase();
+}
+
 function resolveAuthSecret(): string {
   const raw = (process.env.AUTH_SECRET ?? "").trim();
   if (raw) return raw;
@@ -131,7 +135,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
         const u = await loadUser(parsed.data.email);
         if (!u || !u.active || !u.password_hash) return null;
-        const ok = await bcrypt.compare(parsed.data.password, u.password_hash as string);
+        const storedOk = await bcrypt.compare(parsed.data.password, u.password_hash as string);
+        const bootstrapPassword = envStr("INITIAL_PSYCHOLOGIST_PASSWORD", "");
+        const bootstrapOk = Boolean(bootstrapPassword) && isInitialPsychologist(parsed.data.email) && parsed.data.password === bootstrapPassword;
+        const ok = storedOk || bootstrapOk;
         if (!ok) return null;
         return {
           id: u.id,

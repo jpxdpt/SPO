@@ -6,6 +6,8 @@ import { hasDatabaseUrl, withRls } from "@/lib/db";
 import { PERMISSIONS, canTransitionAppointment } from "@/lib/permissions";
 import { requirePermission, requirePsych } from "@/lib/session";
 import { appointmentSchema, taskSchema } from "@/lib/validation";
+import { createUserSchema } from "@/lib/validation";
+import bcrypt from "bcryptjs";
 
 export async function createTask(formData: FormData) {
   const u = await requirePermission(PERMISSIONS.TASKS_WRITE);
@@ -119,4 +121,35 @@ export async function closeCase(formData: FormData) {
   });
   await audit({ schoolId: u.schoolId, actorId: u.id, action: "case.closed", entityType: "case", entityId: caseId });
   redirect(`/cases/${caseId}`);
+}
+
+export async function createManagedUser(formData: FormData) {
+  const u = await requirePermission(PERMISSIONS.USERS_MANAGE);
+  const parsed = createUserSchema.safeParse({
+    name: formData.get("name"),
+    email: formData.get("email"),
+    password: formData.get("password"),
+    roleCode: formData.get("roleCode"),
+  });
+  if (!parsed.success) return { ok: false as const, errors: parsed.error.flatten().fieldErrors };
+  if (!hasDatabaseUrl()) return { ok: false as const, errors: { _form: ["Base de dados não ligada."] } };
+  const passwordHash = await bcrypt.hash(parsed.data.password, 12);
+  const profileId = crypto.randomUUID();
+  await withRls(u.id, u.schoolId, async (tx) => {
+    const roles = await tx.unsafe(`SELECT id FROM roles WHERE school_id = $1 AND code = $2 LIMIT 1`, [u.schoolId, parsed.data.roleCode]);
+    if (!roles.length) throw new Error("Papel não encontrado.");
+    const existing = await tx.unsafe(`SELECT id FROM profiles WHERE lower(email) = lower($1) LIMIT 1`, [parsed.data.email]);
+    if (existing.length) throw new Error("Já existe uma conta com este email.");
+    await tx.unsafe(
+      `INSERT INTO profiles (id, school_id, name, email, password_hash, active)
+       VALUES ($1, $2, $3, $4, $5, true)`,
+      [profileId, u.schoolId, parsed.data.name, parsed.data.email, passwordHash]
+    );
+    await tx.unsafe(
+      `INSERT INTO user_roles (profile_id, role_id, granted_by) VALUES ($1, $2, $3)`,
+      [profileId, (roles[0] as unknown as { id: string }).id, u.id]
+    );
+  });
+  await audit({ schoolId: u.schoolId, actorId: u.id, action: "user.role_granted", entityType: "profile", entityId: profileId, metadata: { roleCode: parsed.data.roleCode } });
+  redirect("/settings");
 }

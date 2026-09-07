@@ -11,7 +11,7 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "db:generate": "drizzle-kit generate",
-    "db:apply": "psql $DATABASE_URL -f db/migrations/0001_init.sql -f db/migrations/0002_roles.sql -f db/migrations/0003_notification_insert_policy.sql",
+    "db:apply": "psql $DATABASE_URL -f db/migrations/0001_init.sql -f db/migrations/0002_roles.sql -f db/migrations/0003_notification_insert_policy.sql -f db/migrations/0004_user_management_policy.sql",
     "db:seed": "tsx db/seed.ts"
   },
   "dependencies": {

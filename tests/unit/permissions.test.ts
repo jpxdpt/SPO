@@ -17,7 +17,7 @@ describe("RBAC seed (4 perfis)", () => {
     expect(hasPermission(p, "cases.read")).toBe(true);
     expect(hasPermission(p, "referrals.triage")).toBe(true);
     expect(hasPermission(p, "orientation.write")).toBe(true);
-    expect(hasPermission(p, "users.manage")).toBe(false);
+    expect(hasPermission(p, "users.manage")).toBe(true);
     expect(hasPermission(p, "roles.manage")).toBe(false);
     expect(hasPermission(p, "settings.manage")).toBe(false);
   });

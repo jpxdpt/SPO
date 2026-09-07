@@ -74,6 +74,15 @@ export const taskSchema = z.object({
 
 export type TaskInput = z.infer<typeof taskSchema>;
 
+export const createUserSchema = z.object({
+  name: z.string().min(3, "Nome obrigatório.").max(200),
+  email: z.string().email("Email inválido.").max(200),
+  password: z.string().min(10, "Use pelo menos 10 caracteres.").max(200),
+  roleCode: z.enum(["SPO_PSYCHOLOGIST", "GUIDANCE_COUNSELOR", "TEACHER", "ADMINISTRATOR"]),
+});
+
+export type CreateUserInput = z.infer<typeof createUserSchema>;
+
 export const ALLOWED_UPLOAD_MIME = [
   "application/pdf",
   "image/png",
