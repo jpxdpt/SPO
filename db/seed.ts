@@ -1,0 +1,107 @@
+/**
+ * Seed fictício PT — NUNCA usar dados reais aqui.
+ * Execução (quando DATABASE_URL existir):
+ *   pnpm db:seed
+ */
+import postgres from "postgres";
+import bcrypt from "bcryptjs";
+
+const url = process.env.DATABASE_URL;
+if (!url) {
+  console.error("DATABASE_URL em falta. Forneça o URL do Neon (branch dev) e volte a correr.");
+  process.exit(1);
+}
+
+const sql = postgres(url, { ssl: "require" });
+
+const FIRST = ["Ana", "Beatriz", "Carlos", "Diogo", "Eva", "Francisco", "Gabriela", "Henrique", "Inês", "João", "Leonor", "Miguel", "Mariana", "Pedro", "Rafaela", "Tiago", "Sofia", "Tomás", "Vera", "Xavier"];
+const LAST = ["Silva", "Santos", "Ferreira", "Costa", "Oliveira", "Martins", "Sousa", "Pereira", "Almeida", "Carvalho"];
+
+async function main() {
+  const schoolId = crypto.randomUUID();
+  await sql`INSERT INTO schools (id, name, timezone) VALUES (${schoolId}, 'Escola Demo (fictícia)', 'Europe/Lisbon')`;
+
+  const yearId = crypto.randomUUID();
+  await sql`INSERT INTO school_years (id, school_id, name, starts_on, ends_on, is_active)
+    VALUES (${yearId}, ${schoolId}, '2025/2026', '2025-09-01', '2026-08-31', TRUE)`;
+  await sql`UPDATE schools SET active_school_year_id = ${yearId} WHERE id = ${schoolId}`;
+
+  for (const p of [
+    { code: "students.read", description: "Consultar alunos (âmbito do papel)" },
+    { code: "students.write", description: "Criar/editar alunos" },
+    { code: "referrals.create", description: "Submeter sinalizações" },
+    { code: "referrals.read.own", description: "Ver as próprias sinalizações" },
+    { code: "referrals.read.all", description: "Ver todas as sinalizações (SPO)" },
+    { code: "referrals.triage", description: "Triar sinalizações (SPO)" },
+    { code: "cases.read", description: "Consultar casos e cronologia" },
+    { code: "cases.write", description: "Criar/editar/encerrar casos" },
+    { code: "cases.assign", description: "Atribuir equipa ao caso" },
+    { code: "appointments.read", description: "Consultar agenda" },
+    { code: "appointments.write", description: "Criar/editar atendimentos" },
+    { code: "tasks.read", description: "Consultar tarefas" },
+    { code: "tasks.write", description: "Criar/editar tarefas" },
+    { code: "documents.read", description: "Consultar documentos" },
+    { code: "documents.write", description: "Carregar documentos" },
+    { code: "users.manage", description: "Gerir utilizadores" },
+    { code: "roles.manage", description: "Gerir papéis e permissões" },
+    { code: "audit.read", description: "Consultar auditoria" },
+    { code: "settings.manage", description: "Gerir definições SPO" },
+  ]) {
+    await sql`INSERT INTO permissions (code, description) VALUES (${p.code}, ${p.description}) ON CONFLICT (code) DO NOTHING`;
+  }
+
+  const psychRole = crypto.randomUUID();
+  const dirRole = crypto.randomUUID();
+  await sql`INSERT INTO roles (id, school_id, code, name, is_system_role) VALUES (${psychRole}, ${schoolId}, 'PSYCHOLOGIST_ADMIN', 'Psicóloga administradora', TRUE)`;
+  await sql`INSERT INTO roles (id, school_id, code, name, is_system_role) VALUES (${dirRole}, ${schoolId}, 'CLASS_DIRECTOR', 'Diretor de turma', TRUE)`;
+
+  const psychPerms = await sql`SELECT id FROM permissions`;
+  for (const r of psychPerms) {
+    await sql`INSERT INTO role_permissions (role_id, permission_id) VALUES (${psychRole}, ${r.id}) ON CONFLICT DO NOTHING`;
+  }
+  for (const code of ["students.read", "referrals.create", "referrals.read.own", "tasks.read"]) {
+    const row = await sql`SELECT id FROM permissions WHERE code = ${code}`;
+    if (row[0]) await sql`INSERT INTO role_permissions (role_id, permission_id) VALUES (${dirRole}, ${row[0].id}) ON CONFLICT DO NOTHING`;
+  }
+
+  const hash = await bcrypt.hash("mudar-em-dev-123", 10);
+  const psychId = crypto.randomUUID();
+  const psych2Id = crypto.randomUUID();
+  const dirAId = crypto.randomUUID();
+  const dirBId = crypto.randomUUID();
+  await sql`INSERT INTO profiles (id, school_id, name, email, password_hash) VALUES
+    (${psychId}, ${schoolId}, 'Dra. Helena fictitious', 'psicologa@escola-demo.pt', ${hash}),
+    (${psych2Id}, ${schoolId}, 'Dra. Marta fictitious', 'psicologa2@escola-demo.pt', ${hash}),
+    (${dirAId}, ${schoolId}, 'Prof. Rui fictitious', 'dt@escola-demo.pt', ${hash}),
+    (${dirBId}, ${schoolId}, 'Profª. Carla fictitious', 'dt2@escola-demo.pt', ${hash})`;
+  await sql`INSERT INTO user_roles (profile_id, role_id) VALUES (${psychId}, ${psychRole}), (${psych2Id}, ${psychRole}), (${dirAId}, ${dirRole}), (${dirBId}, ${dirRole})`;
+  await sql`INSERT INTO class_director_assignments (school_id, profile_id, class_name, school_year_id) VALUES
+    (${schoolId}, ${dirAId}, '7.ºA', ${yearId}), (${schoolId}, ${dirBId}, '8.ºB', ${yearId})`;
+
+  const classes = ["7.ºA", "7.ºA", "7.ºA", "7.ºA", "7.ºA", "7.ºA", "7.ºA", "7.ºA", "7.ºA", "7.ºA", "8.ºB", "8.ºB", "8.ºB", "8.ºB", "8.ºB", "8.ºB", "8.ºB", "8.ºB", "8.ºB", "8.ºB"];
+  const studentIds: string[] = [];
+  for (let i = 0; i < 20; i++) {
+    const id = crypto.randomUUID();
+    studentIds.push(id);
+    const name = `${FIRST[i]} ${LAST[i % LAST.length]} fictitious`;
+    const num = `2025${String(100 + i)}`;
+    const dob = `20${10 + (i % 5)}-0${1 + (i % 9)}-1${i % 9}`;
+    await sql`INSERT INTO students (id, school_id, student_number, full_name, date_of_birth, class_name, school_year_id, created_by)
+      VALUES (${id}, ${schoolId}, ${num}, ${name}, ${dob}, ${classes[i]}, ${yearId}, ${psychId})`;
+  }
+
+  const cats = ["bem_estar_emocional", "absentismo", "comportamento", "dificuldades_aprendizagem", "orientacao_vocacional"];
+  const statuses = ["RECEBIDA", "EM_ANALISE", "SPO_ACOMPANHAMENTO", "ENCERRADA", "RECEBIDA"];
+  for (let i = 0; i < 5; i++) {
+    await sql`INSERT INTO referrals (school_id, student_id, submitted_by, category, factual_description, urgency, status)
+      VALUES (${schoolId}, ${studentIds[i]}, ${dirAId}, ${cats[i]}, ${"Descrição factual fictícia para demonstração. Sem conteúdo clínico real. ".repeat(2)}, 'normal', ${statuses[i]})`;
+  }
+
+  console.log("Seed concluído (dados fictícios). Escola:", schoolId);
+  await sql.end();
+}
+
+main().catch(async (e) => {
+  console.error(e);
+  process.exit(1);
+});
