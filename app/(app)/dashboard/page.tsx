@@ -86,7 +86,7 @@ export default async function DashboardPage() {
                   <td className="py-2">—</td>
                   <td colSpan={3} className="text-slate-500">
                     {noDb
-                      ? "Ligue a base de dados Neon para ver as suas sinalizações."
+                       ? "Ligue a base de dados para ver as suas sinalizações."
                       : "Ainda não submeteu sinalizações."}
                   </td>
                 </tr>
@@ -133,7 +133,7 @@ export default async function DashboardPage() {
         <Card>
           <CardHeader><CardTitle>Hoje</CardTitle><Badge tone="info">agenda</Badge></CardHeader>
           <CardContent>
-            <p className="text-sm text-slate-500">Sem eventos agendados. {noDb ? "Ligue o Neon para carregar a agenda." : ""}</p>
+            <p className="text-sm text-slate-500">Sem eventos agendados. {noDb ? "Ligue a base de dados para carregar a agenda." : ""}</p>
           </CardContent>
         </Card>
         <Card>
@@ -164,7 +164,7 @@ export default async function DashboardPage() {
 function DemoBanner() {
   return (
     <div className="rounded-[12px] border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900" role="status">
-      Base de dados ainda não ligada (DATABASE_URL em falta). A mostrar estrutura com dados de demonstração. Forneça o URL do Neon para ativar dados reais.
+             Base de dados ainda não ligada (DATABASE_URL em falta). A mostrar estrutura com dados de demonstração. Configure a ligação PostgreSQL para ativar dados reais.
     </div>
   );
 }

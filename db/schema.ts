@@ -10,7 +10,7 @@ import {
 
 /**
  * Schema Drizzle — Fase 1 + Fase 2.
- * A DDL oficial com RLS está em db/migrations/0001_init.sql (Neon).
+ * A DDL oficial com RLS está em db/migrations/0001_init.sql.
  * Este schema espelha as tabelas para a app; RLS é aplicado na BD.
  */
 

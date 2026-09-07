@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 /**
- * E2E Fase 2 (requer `pnpm dev` + DATABASE_URL do Neon dev):
+ * E2E Fase 2 (requer `pnpm dev` + DATABASE_URL de uma BD de teste):
  * diretor submete → SPO tria → cria caso → agenda/conclui → encerra →
  * diretor vê só estado seguro.
  * Sem servidor/BD, estes testes são ignorados (smoke de páginas públicas).

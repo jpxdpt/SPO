@@ -1,7 +1,7 @@
 import { isAllowedUpload } from "@/lib/validation";
 
 /**
- * Abstração de ficheiros: disco local em dev, Vercel Blob em prod.
+ * Abstração de ficheiros: disco local por defeito, Blob opcional.
  * Bucket sempre privado; URLs assinados de curta duração (a ligar quando
  * a hospedagem estiver tratada). Bloqueia executáveis por MIME + tamanho.
  */
@@ -26,7 +26,7 @@ export async function storeUpload(opts: {
     await writeFile(path.join(dir, safe), Buffer.from(opts.bytes));
     return { storagePath: `local:${safe}`, filename: opts.filename, mimeType: opts.mimeType, size: opts.size };
   }
-  // Prod (Vercel Blob): ligar quando BLOB_READ_WRITE_TOKEN existir.
+  // Blob remoto opcional: ligar quando BLOB_READ_WRITE_TOKEN existir.
   const { put } = await import("@vercel/blob").catch(() => {
     throw new Error("BLOB_READ_WRITE_TOKEN em falta: configure a hospedagem primeiro.");
   });

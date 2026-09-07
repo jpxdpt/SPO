@@ -8,11 +8,11 @@ import bcrypt from "bcryptjs";
 
 const url = process.env.DATABASE_URL;
 if (!url) {
-  console.error("DATABASE_URL em falta. Forneça o URL do Neon (branch dev) e volte a correr.");
+    console.error("DATABASE_URL em falta. Configure a ligação PostgreSQL e volte a correr.");
   process.exit(1);
 }
 
-const sql = postgres(url, { ssl: "require" });
+const sql = postgres(url, { ssl: process.env.DATABASE_SSL === "false" ? false : "require" });
 
 const FIRST = ["Ana", "Beatriz", "Carlos", "Diogo", "Eva", "Francisco", "Gabriela", "Henrique", "Inês", "João", "Leonor", "Miguel", "Mariana", "Pedro", "Rafaela", "Tiago", "Sofia", "Tomás", "Vera", "Xavier"];
 const LAST = ["Silva", "Santos", "Ferreira", "Costa", "Oliveira", "Martins", "Sousa", "Pereira", "Almeida", "Carvalho"];
@@ -96,26 +96,36 @@ async function main() {
     }
   }
 
-  const hash = await bcrypt.hash("mudar-em-dev-123", 10);
+  const initialPassword = process.env.INITIAL_PSYCHOLOGIST_PASSWORD;
+  if (!initialPassword) throw new Error("INITIAL_PSYCHOLOGIST_PASSWORD é obrigatória para executar o seed.");
+  const hash = await bcrypt.hash(initialPassword, 12);
   const psychId = crypto.randomUUID();
-  const counId = crypto.randomUUID();
-  const teachAId = crypto.randomUUID();
-  const teachBId = crypto.randomUUID();
-  const adminId = crypto.randomUUID();
-  await sql`INSERT INTO profiles (id, school_id, name, email, password_hash) VALUES
-    (${psychId}, ${schoolId}, 'Dra. Helena fictitious', 'psicologa@escola-demo.pt', ${hash}),
-    (${counId}, ${schoolId}, 'Dr. Nuno fictitious', 'orientador@escola-demo.pt', ${hash}),
-    (${teachAId}, ${schoolId}, 'Prof. Rui fictitious', 'dt@escola-demo.pt', ${hash}),
-    (${teachBId}, ${schoolId}, 'Profª. Carla fictitious', 'dt2@escola-demo.pt', ${hash}),
-    (${adminId}, ${schoolId}, 'Admin fictitious', 'admin@escola-demo.pt', ${hash})`;
-  await sql`INSERT INTO user_roles (profile_id, role_id) VALUES
-    (${psychId}, ${roleIds["SPO_PSYCHOLOGIST"]}),
-    (${counId}, ${roleIds["GUIDANCE_COUNSELOR"]}),
-    (${teachAId}, ${roleIds["TEACHER"]}),
-    (${teachBId}, ${roleIds["TEACHER"]}),
-    (${adminId}, ${roleIds["ADMINISTRATOR"]})`;
-  await sql`INSERT INTO class_director_assignments (school_id, profile_id, class_name, school_year_id) VALUES
-    (${schoolId}, ${teachAId}, '7.ºA', ${yearId}), (${schoolId}, ${teachBId}, '8.ºB', ${yearId})`;
+  const psychEmail = process.env.INITIAL_PSYCHOLOGIST_EMAIL || "psicologa@escola-demo.pt";
+  await sql`INSERT INTO profiles (id, school_id, name, email, password_hash)
+    VALUES (${psychId}, ${schoolId}, 'Dra. Helena fictitious', ${psychEmail}, ${hash})`;
+  await sql`INSERT INTO user_roles (profile_id, role_id)
+    VALUES (${psychId}, ${roleIds["SPO_PSYCHOLOGIST"]})`;
+
+  let referralSubmitter = psychId;
+  if (process.env.SEED_DEMO_USERS === "true") {
+    const counId = crypto.randomUUID();
+    const teachAId = crypto.randomUUID();
+    const teachBId = crypto.randomUUID();
+    const adminId = crypto.randomUUID();
+    await sql`INSERT INTO profiles (id, school_id, name, email, password_hash) VALUES
+      (${counId}, ${schoolId}, 'Dr. Nuno fictitious', 'orientador@escola-demo.pt', ${hash}),
+      (${teachAId}, ${schoolId}, 'Prof. Rui fictitious', 'dt@escola-demo.pt', ${hash}),
+      (${teachBId}, ${schoolId}, 'Profª. Carla fictitious', 'dt2@escola-demo.pt', ${hash}),
+      (${adminId}, ${schoolId}, 'Admin fictitious', 'admin@escola-demo.pt', ${hash})`;
+    await sql`INSERT INTO user_roles (profile_id, role_id) VALUES
+      (${counId}, ${roleIds["GUIDANCE_COUNSELOR"]}),
+      (${teachAId}, ${roleIds["TEACHER"]}),
+      (${teachBId}, ${roleIds["TEACHER"]}),
+      (${adminId}, ${roleIds["ADMINISTRATOR"]})`;
+    await sql`INSERT INTO class_director_assignments (school_id, profile_id, class_name, school_year_id) VALUES
+      (${schoolId}, ${teachAId}, '7.ºA', ${yearId}), (${schoolId}, ${teachBId}, '8.ºB', ${yearId})`;
+    referralSubmitter = teachAId;
+  }
 
   const classes = ["7.ºA", "7.ºA", "7.ºA", "7.ºA", "7.ºA", "7.ºA", "7.ºA", "7.ºA", "7.ºA", "7.ºA", "8.ºB", "8.ºB", "8.ºB", "8.ºB", "8.ºB", "8.ºB", "8.ºB", "8.ºB", "8.ºB", "8.ºB"];
   const studentIds: string[] = [];
@@ -133,7 +143,7 @@ async function main() {
   const statuses = ["RECEBIDA", "EM_ANALISE", "SPO_ACOMPANHAMENTO", "ENCERRADA", "RECEBIDA"];
   for (let i = 0; i < 5; i++) {
     await sql`INSERT INTO referrals (school_id, student_id, submitted_by, category, factual_description, urgency, status)
-      VALUES (${schoolId}, ${studentIds[i]}, ${teachAId}, ${cats[i]}, ${"Descrição factual fictícia para demonstração. Sem conteúdo clínico real. ".repeat(2)}, 'normal', ${statuses[i]})`;
+      VALUES (${schoolId}, ${studentIds[i]}, ${referralSubmitter}, ${cats[i]}, ${"Descrição factual fictícia para demonstração. Sem conteúdo clínico real. ".repeat(2)}, 'normal', ${statuses[i]})`;
   }
 
   console.log("Seed concluído (dados fictícios). Escola:", schoolId);

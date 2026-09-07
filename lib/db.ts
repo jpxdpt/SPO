@@ -9,11 +9,11 @@ declare global {
 export function getSql() {
   const databaseUrl = normalizeDatabaseUrl(process.env.DATABASE_URL);
   if (!databaseUrl) {
-    throw new Error("DATABASE_URL em falta. Configure o Neon (branch dev) no .env.local.");
+    throw new Error("DATABASE_URL em falta. Configure a ligação PostgreSQL no ambiente.");
   }
   if (!globalThis.__spoSql) {
     globalThis.__spoSql = postgres(databaseUrl, {
-      ssl: "require",
+      ssl: process.env.DATABASE_SSL === "false" ? false : "require",
       max: 5,
       prepare: false,
     });

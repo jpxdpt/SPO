@@ -24,7 +24,7 @@ export async function audit(opts: {
   metadata?: Record<string, unknown>;
   ip?: string | null;
 }): Promise<void> {
-  // Sem DB configurada (antes do Neon), não bloquear: log local seguro (sem conteúdo sensível).
+  // Sem BD configurada, não bloquear: log local seguro (sem conteúdo sensível).
   if (!process.env.DATABASE_URL) {
     console.info(`[audit-stub] ${opts.action} ${opts.entityType} ${opts.entityId ?? ""}`);
     return;

@@ -21,7 +21,7 @@ export async function createReferral(formData: FormData) {
     return { ok: false as const, errors: parsed.error.flatten().fieldErrors };
   }
   if (!hasDatabaseUrl()) {
-    return { ok: false as const, errors: { _form: ["Base de dados ainda não ligada. Forneça o DATABASE_URL do Neon."] } };
+    return { ok: false as const, errors: { _form: ["Base de dados ainda não ligada. Configure DATABASE_URL."] } };
   }
   const referralId = await withRls(u.id, u.schoolId, async (tx) => {
     const allowed = await tx.unsafe(

@@ -1,6 +1,6 @@
 /**
  * Teste de RLS (migrações 0001 + 0002).
- * Com DATABASE_URL: liga ao Neon (branch dev) e prova que docente/orientador/
+ * Com DATABASE_URL: liga à BD de teste e prova que docente/orientador/
  * administrador não leem casos nem notas.
  * Sem DATABASE_URL: verifica estaticamente que as migrações contêm as policies críticas.
  */

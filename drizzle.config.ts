@@ -5,7 +5,7 @@ export default defineConfig({
   out: "./db/migrations",
   dialect: "postgresql",
   dbCredentials: {
-    // Fornecido depois (Neon). drizzle-kit só precisa disto para gerar/aplicar.
+    // Fornecido pelo ambiente. drizzle-kit só precisa disto para gerar/aplicar.
     url: process.env.DATABASE_URL ?? "postgresql://localhost:5432/spo_placeholder",
   },
 });

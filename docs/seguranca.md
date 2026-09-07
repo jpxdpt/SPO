@@ -4,7 +4,7 @@
 
 ## Decisões tomadas
 
-1. **Sem Supabase**: Postgres Neon (UE) + Auth.js v5 + Vercel Blob. Menos superfície (sem `service_role` no browser), mas a app assume MFA, expiração de sessão (8h) e revogação por `profiles.active`.
+1. **PostgreSQL autónomo**: PostgreSQL 16 num container Docker privado + Auth.js v5 + armazenamento local privado (Vercel/Neon não são necessários). A app assume MFA, expiração de sessão (8h) e revogação por `profiles.active`.
 2. **4 perfis** (`db/migrations/0002_roles.sql`): `SPO_PSYCHOLOGIST` (todo o trabalho clínico e operacional, sem gestão técnica), `GUIDANCE_COUNSELOR` (alunos base + orientação + próprias sinalizações, sem casos/notas), `TEACHER` (alunos das suas turmas + próprias sinalizações em estado seguro), `ADMINISTRATOR` (utilizadores, papéis, definições, auditoria — **sem acesso a conteúdo psicológico**).
 3. **Defesa em profundidade**: cada acesso sensível verifica `school_id` + papel + atribuição à turma **no servidor** (`lib/session.ts`, actions) **e** nas policies RLS (`db/migrations/0001_init.sql`, `0002_roles.sql`). UI escondida nunca é controlo.
 4. **Fail-closed**: sem `SET LOCAL app.profile_id/school_id`, RLS não devolve linhas. Perfis não clínicos obtêm 0 linhas em `cases/clinical_notes/documents` — sem oráculo de existência.
@@ -19,4 +19,4 @@ Base legal e avisos de privacidade; quem abre/encerra casos; campos/categorias a
 
 ## Operação
 
-Cabeçalhos de segurança + CSRF + rate-limit no login (endurecer em prod), validação Zod em todas as actions, backups Neon cifrados com restauro testado, dados fictícios em dev/staging, proibida cópia de prod sem anonimização. `pnpm audit` no CI. Cada bug de permissão/privacidade ganha teste automatizado antes do fix.
+Cabeçalhos de segurança + CSRF + rate-limit no login (endurecer em prod), validação Zod em todas as actions, backups PostgreSQL cifrados com restauro testado, dados fictícios em dev/staging, proibida cópia de prod sem anonimização. `pnpm audit` no CI. Cada bug de permissão/privacidade ganha teste automatizado antes do fix.

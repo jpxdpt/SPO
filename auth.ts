@@ -10,7 +10,7 @@ const loginSchema = z.object({
   password: z.string().min(1),
 });
 
-/** Lê env com fallback; trata string vazia (comum na Vercel) como ausente. */
+/** Lê env com fallback e trata strings vazias como ausentes. */
 function envStr(key: string, fallback: string): string {
   const v = (process.env[key] ?? "").trim();
   return v || fallback;
@@ -22,7 +22,7 @@ async function loadUser(email: string) {
   let sql: Sql | null = null;
   try {
     const postgres = (await import("postgres")).default;
-    sql = postgres(databaseUrl, { ssl: "require", max: 2, prepare: false });
+    sql = postgres(databaseUrl, { ssl: process.env.DATABASE_SSL === "false" ? false : "require", max: 2, prepare: false });
     const rows = (await sql`
       SELECT p.id, p.school_id, p.name, p.email, p.password_hash, p.active
       FROM profiles p WHERE lower(p.email) = lower(${email}) LIMIT 1`) as unknown as {
@@ -74,7 +74,7 @@ function resolveAuthSecret(): string {
   if (process.env.NODE_ENV === "production") {
     console.warn(
       "[auth] AUTH_SECRET em falta — a usar segredo temporário. " +
-        "Defina AUTH_SECRET na Vercel (Environment Variables) e faça redeploy."
+        "Defina AUTH_SECRET no ambiente de execução e reinicie a aplicação."
     );
   }
   return "dev-placeholder-secret-mudar-antes-de-producao-1234567890";

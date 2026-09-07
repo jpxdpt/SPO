@@ -25,7 +25,7 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
         <CardHeader><CardTitle>Resumo</CardTitle></CardHeader>
         <CardContent>
           <p className="text-sm text-slate-500">
-            Dados carregados após ligação ao Neon. Conteúdo clínico (notas, avaliações) nunca aparece aqui — pertence ao caso, com permissões reforçadas.
+            Dados carregados após ligação à base de dados. Conteúdo clínico (notas, avaliações) nunca aparece aqui — pertence ao caso, com permissões reforçadas.
           </p>
         </CardContent>
       </Card>

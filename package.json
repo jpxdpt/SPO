@@ -11,13 +11,13 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "db:generate": "drizzle-kit generate",
-    "db:apply": "psql $DATABASE_URL -f db/migrations/0001_init.sql -f db/migrations/0002_roles.sql -f db/migrations/0003_notification_insert_policy.sql -f db/migrations/0004_user_management_policy.sql",
-    "db:seed": "tsx db/seed.ts"
+    "db:apply": "pnpm db:migrate",
+    "db:seed": "tsx db/seed.ts",
+    "db:migrate": "tsx scripts/apply-migrations.ts"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.3",
     "@hookform/resolvers": "^5.9.1",
-    "@neondatabase/serverless": "^1.1.0",
     "@radix-ui/react-dialog": "^1.1.23",
     "@radix-ui/react-dropdown-menu": "^2.1.24",
     "@radix-ui/react-label": "^2.1.15",

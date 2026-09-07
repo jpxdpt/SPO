@@ -91,7 +91,7 @@ export default async function ReferralsPage() {
             {psych ? <Badge tone="info">equipa SPO</Badge> : <Badge>estados seguros</Badge>}
           </CardHeader>
           <CardContent>
-            {!hasDatabaseUrl() ? <p className="text-sm text-slate-500">Ligue o Neon para ver a lista.</p> : referrals.length === 0 ? <p className="text-sm text-slate-500">Ainda não existem sinalizações.</p> : (
+            {!hasDatabaseUrl() ? <p className="text-sm text-slate-500">Ligue a base de dados para ver a lista.</p> : referrals.length === 0 ? <p className="text-sm text-slate-500">Ainda não existem sinalizações.</p> : (
               <div className="space-y-3">
                 {referrals.map((referral) => (
                   <div key={referral.id} className="rounded-lg border border-slate-200 p-3">

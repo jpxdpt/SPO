@@ -37,7 +37,7 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
         <CardHeader><CardTitle>Resultados</CardTitle></CardHeader>
         <CardContent>
           {!hasDatabaseUrl() ? (
-            <p className="text-sm text-slate-500">Ligue a base de dados Neon para pesquisar alunos.</p>
+            <p className="text-sm text-slate-500">Ligue a base de dados para pesquisar alunos.</p>
           ) : students.length === 0 ? (
             <p className="text-sm text-slate-500">Sem resultados para os filtros indicados.</p>
           ) : (
