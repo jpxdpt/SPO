@@ -2,6 +2,7 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
+import type { Sql } from "postgres";
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -10,9 +11,10 @@ const loginSchema = z.object({
 
 async function loadUser(email: string) {
   if (!process.env.DATABASE_URL) return null;
-  const postgres = (await import("postgres")).default;
-  const sql = postgres(process.env.DATABASE_URL, { ssl: "require", max: 2, prepare: false });
+  let sql: Sql | null = null;
   try {
+    const postgres = (await import("postgres")).default;
+    sql = postgres(process.env.DATABASE_URL, { ssl: "require", max: 2, prepare: false });
     const rows = (await sql`
       SELECT p.id, p.school_id, p.name, p.email, p.password_hash, p.active
       FROM profiles p WHERE lower(p.email) = lower(${email}) LIMIT 1`) as unknown as {
@@ -38,8 +40,17 @@ async function loadUser(email: string) {
       permissions: perms.map((p: { code: string }) => p.code),
       roles: roleRows.map((r: { code: string }) => r.code),
     };
+  } catch (e) {
+    // BD inacessível (URL inválido, rede, migração pendente): recusar login
+    // em vez de lançar 500. Sem conteúdo sensível no log.
+    console.error("[auth] loadUser falhou:", e instanceof Error ? e.message : e);
+    return null;
   } finally {
-    await sql.end({ timeout: 2 });
+    try {
+      await sql?.end({ timeout: 2 });
+    } catch {
+      /* ignorar erro ao fechar */
+    }
   }
 }
 
