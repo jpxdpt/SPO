@@ -1,3 +1,5 @@
+import { hasDatabaseUrl } from "@/lib/db";
+
 /** Diagnóstico seguro: só indica PRESENÇA de configuração, nunca valores. */
 export async function GET() {
   return Response.json({
@@ -6,7 +8,7 @@ export async function GET() {
     time: new Date().toISOString(),
     env: {
       nodeEnv: process.env.NODE_ENV ?? null,
-      database: Boolean(process.env.DATABASE_URL),
+      database: hasDatabaseUrl(),
       authSecret: Boolean((process.env.AUTH_SECRET ?? "").trim()),
       authUrl: process.env.AUTH_URL ?? null,
       filesProvider: process.env.FILES_PROVIDER ?? "local",

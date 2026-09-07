@@ -7,17 +7,23 @@ declare global {
 
 /** Cliente lazy: build não exige DATABASE_URL (fornecida depois). */
 export function getSql() {
-  if (!process.env.DATABASE_URL) {
+  const databaseUrl = normalizeDatabaseUrl(process.env.DATABASE_URL);
+  if (!databaseUrl) {
     throw new Error("DATABASE_URL em falta. Configure o Neon (branch dev) no .env.local.");
   }
   if (!globalThis.__spoSql) {
-    globalThis.__spoSql = postgres(process.env.DATABASE_URL, {
+    globalThis.__spoSql = postgres(databaseUrl, {
       ssl: "require",
       max: 5,
       prepare: false,
     });
   }
   return globalThis.__spoSql;
+}
+
+/** Evita falhas quando o painel de env recebe a URL com aspas/espaços colados. */
+export function normalizeDatabaseUrl(value: string | undefined): string {
+  return (value ?? "").trim().replace(/^("|')|("|')$/g, "");
 }
 
 /** Corre uma transação com contexto RLS (SET LOCAL). Fail-closed sem contexto. */
@@ -34,5 +40,5 @@ export async function withRls<T>(
 }
 
 export function hasDatabaseUrl(): boolean {
-  return Boolean(process.env.DATABASE_URL);
+  return Boolean(normalizeDatabaseUrl(process.env.DATABASE_URL));
 }

@@ -3,6 +3,7 @@ import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import type { Sql } from "postgres";
+import { normalizeDatabaseUrl } from "@/lib/db";
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -16,11 +17,12 @@ function envStr(key: string, fallback: string): string {
 }
 
 async function loadUser(email: string) {
-  if (!process.env.DATABASE_URL) return null;
+  const databaseUrl = normalizeDatabaseUrl(process.env.DATABASE_URL);
+  if (!databaseUrl) return null;
   let sql: Sql | null = null;
   try {
     const postgres = (await import("postgres")).default;
-    sql = postgres(process.env.DATABASE_URL, { ssl: "require", max: 2, prepare: false });
+    sql = postgres(databaseUrl, { ssl: "require", max: 2, prepare: false });
     const rows = (await sql`
       SELECT p.id, p.school_id, p.name, p.email, p.password_hash, p.active
       FROM profiles p WHERE lower(p.email) = lower(${email}) LIMIT 1`) as unknown as {
@@ -87,7 +89,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const parsed = loginSchema.safeParse(credentials);
         if (!parsed.success) return null;
         // Dev sem BD: contas demo dos 4 perfis (nunca em prod com DATABASE_URL).
-        if (!process.env.DATABASE_URL) {
+        if (!normalizeDatabaseUrl(process.env.DATABASE_URL)) {
           const { email, password } = parsed.data;
           const demo = (
             id: string,
