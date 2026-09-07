@@ -9,6 +9,12 @@ const loginSchema = z.object({
   password: z.string().min(1),
 });
 
+/** Lê env com fallback; trata string vazia (comum na Vercel) como ausente. */
+function envStr(key: string, fallback: string): string {
+  const v = (process.env[key] ?? "").trim();
+  return v || fallback;
+}
+
 async function loadUser(email: string) {
   if (!process.env.DATABASE_URL) return null;
   let sql: Sql | null = null;
@@ -89,10 +95,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             roles: string[],
             permissions: string[]
           ) => ({ id, name, email, schoolId: "demo-school", roles, permissions }) as never;
-          if (email === (process.env.DEV_PSYCH_EMAIL ?? "psicologa@escola-demo.pt") && password === (process.env.DEV_PSYCH_PASSWORD ?? "demo")) {
+          if (email === envStr("DEV_PSYCH_EMAIL", "psicologa@escola-demo.pt") && password === envStr("DEV_PSYCH_PASSWORD", "demo")) {
             return demo("demo-psych-1", "Dra. Demo (fictícia)", ["SPO_PSYCHOLOGIST"], ["*"]);
           }
-          if (email === (process.env.DEV_COUNSELOR_EMAIL ?? "orientador@escola-demo.pt") && password === (process.env.DEV_COUNSELOR_PASSWORD ?? "demo")) {
+          if (email === envStr("DEV_COUNSELOR_EMAIL", "orientador@escola-demo.pt") && password === envStr("DEV_COUNSELOR_PASSWORD", "demo")) {
             return demo("demo-coun-1", "Orientador Demo (fictício)", ["GUIDANCE_COUNSELOR"], [
               "students.read",
               "referrals.create",
@@ -103,7 +109,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               "tasks.write",
             ]);
           }
-          if (email === (process.env.DEV_DIRECTOR_EMAIL ?? "dt@escola-demo.pt") && password === (process.env.DEV_DIRECTOR_PASSWORD ?? "demo")) {
+          if (email === envStr("DEV_DIRECTOR_EMAIL", "dt@escola-demo.pt") && password === envStr("DEV_DIRECTOR_PASSWORD", "demo")) {
             return demo("demo-teach-1", "Prof. Demo (fictício)", ["TEACHER"], [
               "students.read",
               "referrals.create",
@@ -111,7 +117,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               "tasks.read",
             ]);
           }
-          if (email === (process.env.DEV_ADMIN_EMAIL ?? "admin@escola-demo.pt") && password === (process.env.DEV_ADMIN_PASSWORD ?? "demo")) {
+          if (email === envStr("DEV_ADMIN_EMAIL", "admin@escola-demo.pt") && password === envStr("DEV_ADMIN_PASSWORD", "demo")) {
             return demo("demo-admin-1", "Admin Demo (fictício)", ["ADMINISTRATOR"], [
               "users.manage",
               "roles.manage",

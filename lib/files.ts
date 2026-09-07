@@ -16,7 +16,7 @@ export async function storeUpload(opts: {
   if (!isAllowedUpload(opts.mimeType, opts.size)) {
     throw new Error("Tipo de ficheiro não permitido ou tamanho superior a 10 MB.");
   }
-  const provider = process.env.FILES_PROVIDER ?? "local";
+  const provider = ((process.env.FILES_PROVIDER ?? "").trim() || "local") as string;
   if (provider === "local") {
     const { writeFile, mkdir } = await import("node:fs/promises");
     const path = await import("node:path");
